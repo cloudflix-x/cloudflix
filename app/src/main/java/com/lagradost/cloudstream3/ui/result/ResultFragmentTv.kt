@@ -202,7 +202,7 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
                         isFavorite = composeFavoriteStatusState,
                         hasTrailers = composeHasTrailersState,
                         resumeStatus = composeResumeWatchingState,
-                        isMovie = composeEpisodesState.isEmpty() || (composeResumeWatchingState?.isMovie == true),
+                        isMovie = composeEpisodesState.isEmpty() || composeResumeWatchingState?.isMovie == true,
                         onPlayClick = {
                             val resume = composeResumeWatchingState
                             if (resume != null) {
@@ -326,6 +326,10 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
             }
         }
 
+        observeViewModel(binding, storedData)
+    }
+
+    private fun observeViewModel(binding: FragmentResultTvBinding, storedData: StoredData) {
         observeNullable(viewModel.resumeWatching) { resume ->
             composeResumeWatchingState = resume
         }

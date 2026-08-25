@@ -14,6 +14,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -64,6 +65,8 @@ import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.lagradost.cloudstream3.R
 import com.lagradost.cloudstream3.ui.result.compose.theme.MovieDetailsTheme
+import com.lagradost.cloudstream3.ui.result.compose.theme.MovieDetailsColors
+import com.lagradost.cloudstream3.ui.result.compose.theme.MovieDetailsDimens
 import com.lagradost.cloudstream3.ui.result.compose.theme.PrimaryBlack
 import com.lagradost.cloudstream3.ui.result.compose.theme.PrimaryWhite
 import com.lagradost.cloudstream3.ui.result.compose.theme.TransparentBlack90
@@ -535,47 +538,163 @@ fun SeasonDropdown(
                 .heightIn(max = 280.dp)
         ) {
             options.forEach { option ->
-                val isSelected = option == selectedOption
-                val optionInteractionSource = remember(option) { MutableInteractionSource() }
-                val isOptionFocused by optionInteractionSource.collectIsFocusedAsState()
-                val focusColor = colors.onSurface.copy(
-                    alpha = if (colors.surface.luminance() < 0.5f) 0.22f else 0.12f
-                )
-                val focusBorder = colors.onSurface.copy(alpha = 0.72f)
-
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = option,
-                            color = if (isSelected) colors.primary else colors.textPrimary,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 14.sp
-                        )
-                    },
+                SeasonDropdownMenuItem(
+                    option = option,
+                    isSelected = option == selectedOption,
+                    colors = colors,
                     onClick = {
                         onOptionSelected(option)
                         expanded = false
-                    },
-                    modifier = Modifier
-                        .clip(MovieDetailsTokens.ShapeCardSmall)
-                        .background(if (isOptionFocused) focusColor else Color.Transparent)
-                        .then(
-                            if (isOptionFocused) {
-                                Modifier.border(
-                                    BorderStroke(2.dp, focusBorder),
-                                    MovieDetailsTokens.ShapeCardSmall
-                                )
-                            } else {
-                                Modifier
-                            }
-                        ),
-                    interactionSource = optionInteractionSource,
-                    colors = MenuDefaults.itemColors(
-                        textColor = if (isSelected) colors.primary else colors.textPrimary
-                    )
+                    }
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SeasonDropdownMenuItem(
+    option: String,
+    isSelected: Boolean,
+    colors: com.lagradost.cloudstream3.ui.result.compose.theme.MovieDetailsColors,
+    onClick: () -> Unit
+) {
+    val optionInteractionSource = remember(option) { MutableInteractionSource() }
+    val isOptionFocused by optionInteractionSource.collectIsFocusedAsState()
+    val focusColor = colors.onSurface.copy(
+        alpha = if (colors.surface.luminance() < 0.5f) 0.22f else 0.12f
+    )
+    val focusBorder = colors.onSurface.copy(alpha = 0.72f)
+
+    DropdownMenuItem(
+        text = {
+            Text(
+                text = option,
+                color = if (isSelected) colors.primary else colors.textPrimary,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                fontSize = 14.sp
+            )
+        },
+        onClick = onClick,
+        modifier = Modifier
+            .clip(MovieDetailsTokens.ShapeCardSmall)
+            .background(if (isOptionFocused) focusColor else Color.Transparent)
+            .then(
+                if (isOptionFocused) {
+                    Modifier.border(
+                        BorderStroke(2.dp, focusBorder),
+                        MovieDetailsTokens.ShapeCardSmall
+                    )
+                } else {
+                    Modifier
+                }
+            ),
+        interactionSource = optionInteractionSource,
+        colors = MenuDefaults.itemColors(
+            textColor = if (isSelected) colors.primary else colors.textPrimary
+        )
+    )
+}
+
+@Composable
+private fun MovieCardImageOrPlaceholder(
+    imageUrl: String?,
+    title: String,
+    colors: MovieDetailsColors
+) {
+    if (!imageUrl.isNullOrBlank()) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colors.surface),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = title.take(2).uppercase(),
+                color = colors.textSecondary,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.MovieCardBottomTitleOverlay(
+    title: String,
+    colors: MovieDetailsColors
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .align(Alignment.BottomCenter)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color.Transparent, TransparentBlack90),
+                    startY = 0f
+                )
+            )
+            .padding(horizontal = 8.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = title,
+            color = colors.textPrimary,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun BoxScope.MovieCardProgressBar(
+    progress: Float,
+    dimens: MovieDetailsDimens,
+    colors: MovieDetailsColors
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(dimens.progressHeight)
+            .align(Alignment.BottomCenter)
+            .background(colors.border)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(progress.coerceIn(0f, 1f))
+                .background(colors.primary)
+        )
+    }
+}
+
+@Composable
+private fun BoxScope.MovieCardBadge(
+    badge: MovieBadgeType,
+    colors: MovieDetailsColors
+) {
+    Box(
+        modifier = Modifier
+            .align(Alignment.TopStart)
+            .padding(4.dp)
+            .clip(RoundedCornerShape(2.dp))
+            .background(colors.primary)
+            .padding(horizontal = 5.dp, vertical = 2.dp)
+    ) {
+        Text(
+            text = stringResource(id = badge.stringRes),
+            color = colors.onPrimary,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
@@ -616,7 +735,7 @@ fun MovieDetailsMovieCard(
     }
 
     val cardWidth = MovieCardDefaults.cardWidth(type, size)
-    val imageUrl = if (type == MovieCardType.POSTER) (posterUrl ?: backdropUrl) else (backdropUrl ?: posterUrl)
+    val imageUrl = if (type == MovieCardType.POSTER) posterUrl ?: backdropUrl else backdropUrl ?: posterUrl
 
     val border = if (isFocused) {
         BorderStroke(dimens.borderFocus, colors.primary)
@@ -664,86 +783,32 @@ fun MovieDetailsMovieCard(
                     .background(colors.surface)
                     .border(border, MovieDetailsTokens.ShapeCardSmall)
             ) {
-                if (!imageUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = imageUrl,
-                        contentDescription = title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(colors.surface),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = title.take(2).uppercase(),
-                            color = colors.textSecondary,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+                MovieCardImageOrPlaceholder(
+                    imageUrl = imageUrl,
+                    title = title,
+                    colors = colors
+                )
 
                 if (type == MovieCardType.POSTER && showBottomTitle) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.BottomCenter)
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(Color.Transparent, TransparentBlack90),
-                                    startY = 0f
-                                )
-                            )
-                            .padding(horizontal = 8.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = title,
-                            color = colors.textPrimary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                    MovieCardBottomTitleOverlay(
+                        title = title,
+                        colors = colors
+                    )
                 }
 
                 if (progress != null && progress > 0f) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(dimens.progressHeight)
-                            .align(Alignment.BottomCenter)
-                            .background(colors.border)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(progress.coerceIn(0f, 1f))
-                                .background(colors.primary)
-                        )
-                    }
+                    MovieCardProgressBar(
+                        progress = progress,
+                        dimens = dimens,
+                        colors = colors
+                    )
                 }
 
                 if (badge != null) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(4.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(colors.primary)
-                            .padding(horizontal = 5.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = stringResource(id = badge.stringRes),
-                            color = colors.onPrimary,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    MovieCardBadge(
+                        badge = badge,
+                        colors = colors
+                    )
                 }
             }
 
