@@ -59,13 +59,17 @@ fun AboutMetadataRow(
 @Composable
 fun AboutSection(
     title: String,
-    creator: String?,
-    castList: List<String>,
-    writers: List<String>,
-    genres: List<String>,
-    moodTags: List<String>,
-    maturityRating: String?,
-    advisories: String?,
+    creator: String? = null,
+    castList: List<String> = emptyList(),
+    writers: List<String> = emptyList(),
+    genres: List<String> = emptyList(),
+    moodTags: List<String> = emptyList(),
+    maturityRating: String? = null,
+    advisories: String? = null,
+    directors: List<String> = emptyList(),
+    creators: List<String> = emptyList(),
+    networks: List<String> = emptyList(),
+    productionCompanies: List<String> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     val colors = MovieDetailsTheme.colors
@@ -100,21 +104,46 @@ fun AboutSection(
 
             Spacer(modifier = Modifier.height(dimens.spacingXs))
 
-            if (!creator.isNullOrBlank()) {
+            if (creators.isNotEmpty()) {
+                AboutMetadataRow(
+                    label = stringResource(id = if (creators.size > 1) R.string.creators_label else R.string.creator_label),
+                    value = creators.joinToString(", ")
+                )
+            } else if (!creator.isNullOrBlank()) {
                 AboutMetadataRow(label = stringResource(id = R.string.creator_label), value = creator)
             }
+
+            if (directors.isNotEmpty()) {
+                AboutMetadataRow(
+                    label = stringResource(id = if (directors.size > 1) R.string.directors_label else R.string.director_label),
+                    value = directors.joinToString(", ")
+                )
+            }
+
             if (castList.isNotEmpty()) {
                 AboutMetadataRow(label = stringResource(id = R.string.cast_label), value = castList.joinToString(", "))
             }
+
             if (writers.isNotEmpty()) {
                 AboutMetadataRow(label = stringResource(id = R.string.writers_label), value = writers.joinToString(", "))
             }
+
             if (genres.isNotEmpty()) {
                 AboutMetadataRow(label = stringResource(id = R.string.genres_label), value = genres.joinToString(", "))
             }
+
             if (moodTags.isNotEmpty()) {
                 AboutMetadataRow(label = stringResource(id = R.string.mood_tags_label), value = moodTags.joinToString(", "))
             }
+
+            if (networks.isNotEmpty()) {
+                AboutMetadataRow(label = stringResource(id = R.string.networks_label), value = networks.joinToString(", "))
+            }
+
+            if (productionCompanies.isNotEmpty()) {
+                AboutMetadataRow(label = stringResource(id = R.string.studios_label), value = productionCompanies.joinToString(", "))
+            }
+
             if (!maturityRating.isNullOrBlank()) {
                 val ratingDescription = if (!advisories.isNullOrBlank()) {
                     "$maturityRating ($advisories)"

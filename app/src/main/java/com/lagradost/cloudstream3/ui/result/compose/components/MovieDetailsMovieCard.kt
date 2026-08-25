@@ -118,21 +118,22 @@ private fun BoxScope.CardProgressBar(progress: Float) {
 }
 
 @Composable
-private fun BoxScope.CardBadge(badge: MovieBadgeType) {
-    val colors = MovieDetailsTheme.colors
-    Box(
-        modifier = Modifier
-            .align(Alignment.TopStart)
-            .padding(4.dp)
-            .clip(RoundedCornerShape(2.dp))
-            .background(colors.primary)
-            .padding(horizontal = 5.dp, vertical = 2.dp)
-    ) {
-        Text(
+private fun BoxScope.CardBadge(badge: MovieBadgeType, top10Rank: Int? = null) {
+    if (badge == MovieBadgeType.TOP_10 || top10Rank != null) {
+        Top10SquareBadge(
+            rank = top10Rank,
+            size = BadgeSize.Small,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(4.dp)
+        )
+    } else {
+        ContentPillBadge(
             text = stringResource(id = badge.stringRes),
-            color = colors.onPrimary,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Bold
+            isHighlighted = (badge == MovieBadgeType.MUST_WATCH),
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(4.dp)
         )
     }
 }
@@ -147,6 +148,7 @@ fun MovieDetailsMovieCard(
     backdropUrl: String? = null,
     progress: Float? = null,
     badge: MovieBadgeType? = null,
+    top10Rank: Int? = null,
     matchScore: String? = null,
     maturityRating: String? = null,
     duration: String? = null,
@@ -232,8 +234,8 @@ fun MovieDetailsMovieCard(
                     CardProgressBar(progress = progress)
                 }
 
-                if (badge != null) {
-                    CardBadge(badge = badge)
+                if (badge != null || top10Rank != null) {
+                    CardBadge(badge = badge ?: MovieBadgeType.TOP_10, top10Rank = top10Rank)
                 }
             }
 

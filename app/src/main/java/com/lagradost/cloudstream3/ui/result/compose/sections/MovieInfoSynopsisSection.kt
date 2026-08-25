@@ -26,8 +26,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lagradost.cloudstream3.R
+import com.lagradost.cloudstream3.ui.result.compose.components.BadgeSize
+import com.lagradost.cloudstream3.ui.result.compose.components.ContentPillBadge
 import com.lagradost.cloudstream3.ui.result.compose.components.MaturityRatingBadge
 import com.lagradost.cloudstream3.ui.result.compose.components.MovieDetailsTokens
+import com.lagradost.cloudstream3.ui.result.compose.components.Top10RankLabel
 import com.lagradost.cloudstream3.ui.result.compose.components.VideoQualityBadge
 import com.lagradost.cloudstream3.ui.result.compose.theme.MovieDetailsTheme
 import com.lagradost.cloudstream3.ui.result.compose.theme.getRatingScoreColor
@@ -44,13 +47,21 @@ fun MovieInfoSynopsisSection(
     synopsis: String,
     castList: List<String>,
     genres: List<String>,
-    moodTags: List<String>,
+    moodTags: List<String> = emptyList(),
+    contentDescriptors: List<String> = emptyList(),
+    directors: List<String> = emptyList(),
+    creators: List<String> = emptyList(),
+    writers: List<String> = emptyList(),
+    top10Rank: Int? = null,
+    contentBadge: String? = null,
+    isMovie: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val colors = MovieDetailsTheme.colors
     val typography = MovieDetailsTheme.typography
     val dimens = MovieDetailsTheme.dimens
-    val hasRightColumn = castList.isNotEmpty() || genres.isNotEmpty() || moodTags.isNotEmpty()
+    val hasRightColumn = castList.isNotEmpty() || genres.isNotEmpty() || moodTags.isNotEmpty() ||
+            creators.isNotEmpty() || directors.isNotEmpty() || writers.isNotEmpty()
 
     Row(
         modifier = modifier
@@ -103,7 +114,16 @@ fun MovieInfoSynopsisSection(
                 }
             }
 
-            if (!maturityRating.isNullOrBlank() || !advisories.isNullOrBlank()) {
+            if (!contentBadge.isNullOrBlank()) {
+                ContentPillBadge(
+                    text = contentBadge,
+                    isHighlighted = (contentBadge == "Must Watch")
+                )
+            }
+
+            val advisoryText = advisories?.takeIf { it.isNotBlank() }
+                ?: contentDescriptors.takeIf { it.isNotEmpty() }?.joinToString(", ")
+            if (!maturityRating.isNullOrBlank() || !advisoryText.isNullOrBlank()) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(dimens.spacingS)
@@ -111,9 +131,9 @@ fun MovieInfoSynopsisSection(
                     if (!maturityRating.isNullOrBlank()) {
                         MaturityRatingBadge(rating = maturityRating)
                     }
-                    if (!advisories.isNullOrBlank()) {
+                    if (!advisoryText.isNullOrBlank()) {
                         Text(
-                            text = advisories,
+                            text = advisoryText,
                             color = colors.textMuted,
                             style = typography.regularCaption1
                         )
@@ -121,32 +141,14 @@ fun MovieInfoSynopsisSection(
                 }
             }
 
-            if (!top10RankText.isNullOrBlank()) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(dimens.spacingS),
+            if (top10Rank != null || !top10RankText.isNullOrBlank()) {
+                Top10RankLabel(
+                    rank = top10Rank ?: 1,
+                    isMovie = isMovie,
+                    customRankText = top10RankText,
+                    size = BadgeSize.Small,
                     modifier = Modifier.padding(vertical = dimens.spacingXs)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(MovieDetailsTokens.ShapeCardSmall)
-                            .background(colors.primary)
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.top_10_badge_text),
-                            style = typography.regularCaption2,
-                            color = colors.onPrimary,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
-                    Text(
-                        text = top10RankText,
-                        style = typography.mediumBody,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary
-                    )
-                }
+                )
             }
 
             if (synopsis.isNotBlank()) {
@@ -214,6 +216,55 @@ fun MovieInfoSynopsisSection(
                             text = genres.joinToString(", "),
                             style = typography.regularCaption1,
                             color = colors.textPrimary
+                        )
+                    }
+                }
+
+                if (creators.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = stringResource(id = if (creators.size > 1) R.string.creators_label else R.string.creator_label),
+                            style = typography.regularCaption2,
+                            color = colors.textSecondary
+                        )
+                        Text(
+                            text = creators.joinToString(", "),
+                            style = typography.regularCaption1,
+                            color = colors.textPrimary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                } else if (directors.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = stringResource(id = if (directors.size > 1) R.string.directors_label else R.string.director_label),
+                            style = typography.regularCaption2,
+                            color = colors.textSecondary
+                        )
+                        Text(
+                            text = directors.joinToString(", "),
+                            style = typography.regularCaption1,
+                            color = colors.textPrimary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                if (writers.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = stringResource(id = R.string.writers_label),
+                            style = typography.regularCaption2,
+                            color = colors.textSecondary
+                        )
+                        Text(
+                            text = writers.joinToString(", "),
+                            style = typography.regularCaption1,
+                            color = colors.textPrimary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }

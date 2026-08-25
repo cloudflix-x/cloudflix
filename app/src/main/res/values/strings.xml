@@ -808,12 +808,19 @@
     <string name="genres_label">Genres:</string>
     <string name="mood_tags_label">This show is:</string>
     <string name="creator_label">Creator:</string>
+    <string name="creators_label">Creators:</string>
+    <string name="director_label">Director:</string>
+    <string name="directors_label">Directors:</string>
     <string name="writers_label">Writers:</string>
+    <string name="studios_label">Studios:</string>
+    <string name="networks_label">Networks:</string>
     <string name="about_title_format">About %1$s</string>
     <string name="maturity_rating_label">Maturity Rating:</string>
     <string name="download_episode_format">Download Episode %1$d</string>
     <string name="episode_number_format">Episode %1$d</string>
     <string name="audio_description">Audio Description</string>
     <string name="top_10_badge_text">TOP\n10</string>
+    <string name="top_10_tv_rank_format">#%1$d in TV Shows Today</string>
+    <string name="top_10_movie_rank_format">#%1$d in Movies Today</string>
     <string name="close">Close</string>
 </resources>

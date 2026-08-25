@@ -88,6 +88,15 @@ fun MovieDetailsComposeScreen(
     isInWatchList: Boolean = false,
     isFavorite: Boolean = false,
     hasTrailers: Boolean = false,
+    brandingLogoUrl: String? = null,
+    brandingText: String? = null,
+    contentDescriptors: List<String> = emptyList(),
+    directors: List<String> = emptyList(),
+    creators: List<String> = emptyList(),
+    productionCompanies: List<String> = emptyList(),
+    networks: List<String> = emptyList(),
+    top10Rank: Int? = null,
+    contentBadge: String? = null,
     onPlayClick: () -> Unit = {},
     onEpisodeClick: ((ResultEpisode) -> Unit)? = null,
     onSeasonSelect: ((Int) -> Unit)? = null,
@@ -247,7 +256,9 @@ fun MovieDetailsComposeScreen(
                     onAddToListClick = onAddToListClick,
                     onLikeClick = onLikeClick,
                     onTrailerClick = onTrailerClick,
-                    onSearchClick = onSearchClick
+                    onSearchClick = onSearchClick,
+                    brandingLogoUrl = brandingLogoUrl,
+                    brandingText = brandingText
                 )
             }
 
@@ -263,7 +274,14 @@ fun MovieDetailsComposeScreen(
                     synopsis = synopsis,
                     castList = castList,
                     genres = genres,
-                    moodTags = moodTags
+                    moodTags = moodTags,
+                    contentDescriptors = contentDescriptors,
+                    directors = directors,
+                    creators = creators,
+                    writers = writers,
+                    top10Rank = top10Rank,
+                    contentBadge = contentBadge,
+                    isMovie = isMovie
                 )
             }
 
@@ -357,7 +375,8 @@ fun MovieDetailsComposeScreen(
 
             val hasAboutContent = !creator.isNullOrBlank() || castList.isNotEmpty() ||
                     writers.isNotEmpty() || genres.isNotEmpty() || moodTags.isNotEmpty() ||
-                    !maturityRating.isNullOrBlank()
+                    !maturityRating.isNullOrBlank() || directors.isNotEmpty() ||
+                    creators.isNotEmpty() || productionCompanies.isNotEmpty() || networks.isNotEmpty()
 
             if (hasAboutContent) {
                 item(key = "about_section", contentType = "about_section") {
@@ -369,7 +388,11 @@ fun MovieDetailsComposeScreen(
                         genres = genres,
                         moodTags = moodTags,
                         maturityRating = maturityRating,
-                        advisories = advisories
+                        advisories = advisories,
+                        directors = directors,
+                        creators = creators,
+                        networks = networks,
+                        productionCompanies = productionCompanies
                     )
                 }
             }

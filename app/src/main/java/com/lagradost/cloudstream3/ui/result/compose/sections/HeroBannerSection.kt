@@ -68,6 +68,8 @@ fun HeroBannerSection(
     onLikeClick: () -> Unit,
     onTrailerClick: () -> Unit,
     onSearchClick: (() -> Unit)?,
+    brandingLogoUrl: String? = null,
+    brandingText: String? = null,
     modifier: Modifier = Modifier
 ) {
     val colors = MovieDetailsTheme.colors
@@ -218,6 +220,31 @@ fun HeroBannerSection(
             verticalAlignment = Alignment.Bottom
         ) {
             Column {
+                if (!brandingLogoUrl.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .height(24.dp)
+                            .padding(bottom = 4.dp)
+                    ) {
+                        AsyncImage(
+                            model = brandingLogoUrl,
+                            contentDescription = brandingText,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxHeight()
+                        )
+                    }
+                } else if (!brandingText.isNullOrBlank()) {
+                    Text(
+                        text = brandingText.uppercase(),
+                        style = typography.regularCaption2.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.5.sp
+                        ),
+                        color = colors.textSecondary,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                }
+
                 if (!logoUrl.isNullOrBlank()) {
                     Box(
                         modifier = Modifier
