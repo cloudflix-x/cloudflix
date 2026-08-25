@@ -30,8 +30,10 @@ import com.lagradost.cloudstream3.LiveStreamLoadResponse
 import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.LoadResponse.Companion.getAniListId
+import com.lagradost.cloudstream3.LoadResponse.Companion.getImdbId
 import com.lagradost.cloudstream3.LoadResponse.Companion.getKitsuId
 import com.lagradost.cloudstream3.LoadResponse.Companion.getMalId
+import com.lagradost.cloudstream3.LoadResponse.Companion.getTMDbId
 import com.lagradost.cloudstream3.LoadResponse.Companion.isMovie
 import com.lagradost.cloudstream3.LoadResponse.Companion.readIdFromString
 import com.lagradost.cloudstream3.MainActivity
@@ -56,6 +58,7 @@ import com.lagradost.cloudstream3.amap
 import com.lagradost.cloudstream3.isEpisodeBased
 import com.lagradost.cloudstream3.isLiveStream
 import com.lagradost.cloudstream3.metaproviders.SyncRedirector
+import com.lagradost.cloudstream3.metaproviders.TmdbProvider
 import com.lagradost.cloudstream3.mvvm.Resource
 import com.lagradost.cloudstream3.mvvm.debugAssert
 import com.lagradost.cloudstream3.mvvm.debugException
@@ -194,6 +197,17 @@ data class ResultData(
     val nextAiringEpisode: UiText?,
     val plotHeaderText: UiText,
     val posterHeaders: Map<String, String>? = null,
+    val directors: List<String> = emptyList(),
+    val creators: List<String> = emptyList(),
+    val writers: List<String> = emptyList(),
+    val productionCompanies: List<String> = emptyList(),
+    val networks: List<String> = emptyList(),
+    val moodTags: List<String> = emptyList(),
+    val contentDescriptors: List<String> = emptyList(),
+    val brandingText: String? = null,
+    val contentBadge: String? = null,
+    val top10Rank: Int? = null,
+    val top10RankText: String? = null,
 )
 
 data class CheckDuplicateData(
@@ -277,6 +291,18 @@ fun LoadResponse.toResultData(repo: APIRepository): ResultData {
         }
     }
     val dur = duration
+    val directors = syncData["tmdb_directors"]?.let { com.lagradost.cloudstream3.utils.AppUtils.tryParseJson<List<String>>(it) } ?: emptyList()
+    val creators = syncData["tmdb_creators"]?.let { com.lagradost.cloudstream3.utils.AppUtils.tryParseJson<List<String>>(it) } ?: emptyList()
+    val writers = syncData["tmdb_writers"]?.let { com.lagradost.cloudstream3.utils.AppUtils.tryParseJson<List<String>>(it) } ?: emptyList()
+    val prodCompanies = syncData["tmdb_production_companies"]?.let { com.lagradost.cloudstream3.utils.AppUtils.tryParseJson<List<String>>(it) } ?: emptyList()
+    val networks = syncData["tmdb_networks"]?.let { com.lagradost.cloudstream3.utils.AppUtils.tryParseJson<List<String>>(it) } ?: emptyList()
+    val moodTags = syncData["tmdb_mood_tags"]?.let { com.lagradost.cloudstream3.utils.AppUtils.tryParseJson<List<String>>(it) } ?: emptyList()
+    val contentDesc = syncData["tmdb_content_descriptors"]?.let { com.lagradost.cloudstream3.utils.AppUtils.tryParseJson<List<String>>(it) } ?: emptyList()
+    val brandingText = syncData["tmdb_branding_text"]
+    val contentBadge = syncData["tmdb_content_badge"]
+    val top10Rank = syncData["tmdb_top10_rank"]?.toIntOrNull()
+    val top10RankText = syncData["tmdb_top10_rank_text"]
+
     return ResultData(
         syncData = syncData,
         plotHeaderText = txt(
@@ -356,7 +382,18 @@ fun LoadResponse.toResultData(repo: APIRepository): ResultData {
         noEpisodesFoundText =
             if ((this is TvSeriesLoadResponse && this.episodes.isEmpty()) || (this is AnimeLoadResponse && !this.episodes.any { it.value.isNotEmpty() })) txt(
                 R.string.no_episodes_found
-            ) else null
+            ) else null,
+        directors = directors,
+        creators = creators,
+        writers = writers,
+        productionCompanies = prodCompanies,
+        networks = networks,
+        moodTags = moodTags,
+        contentDescriptors = contentDesc,
+        brandingText = brandingText,
+        contentBadge = contentBadge,
+        top10Rank = top10Rank,
+        top10RankText = top10RankText,
     )
 }
 
@@ -1708,6 +1745,145 @@ class ResultViewModel2 : ViewModel() {
             }
 
             runAllAsync(
+                {
+                    // TMDB Metadata & Synopsis Enrichment (Safe Fallback)
+                    try {
+                        val isMovieType = this.isMovie()
+                        val currentImdbId = this.getImdbId() ?: getImdbIdFromSyncData(syncData) ?: run {
+                            Regex("""tt\d+""").find(this.url)?.value
+                        }
+                        val currentTmdbId = this.getTMDbId()?.toIntOrNull() ?: getTMDbIdFromSyncData(syncData)?.toIntOrNull()
+
+                        val enriched = TmdbProvider.fetchTmdbMetadata(
+                            imdbId = currentImdbId,
+                            tmdbId = currentTmdbId,
+                            title = this.name,
+                            year = this.year,
+                            isMovie = isMovieType
+                        )
+
+                        if (enriched != null) {
+                            if (plot.isNullOrBlank() || plot!!.length < 15 || plot.equals("N/A", true)) {
+                                if (!enriched.plot.isNullOrBlank()) {
+                                    plot = enriched.plot
+                                }
+                            }
+                            backgroundPosterUrl = backgroundPosterUrl ?: enriched.backdropUrl
+                            logoUrl = logoUrl ?: enriched.logoUrl
+                            posterUrl = posterUrl ?: enriched.posterUrl
+                            duration = duration ?: enriched.duration
+                            score = score ?: enriched.score
+                            contentRating = contentRating ?: enriched.contentRating
+                            if (tags.isNullOrEmpty() && enriched.genres.isNotEmpty()) {
+                                tags = enriched.genres
+                            }
+                            if (actors.isNullOrEmpty() && enriched.actors.isNotEmpty()) {
+                                actors = enriched.actors
+                            }
+                            if (recommendations.isNullOrEmpty() && enriched.recommendations.isNotEmpty()) {
+                                recommendations = enriched.recommendations
+                            }
+                            if (trailers.isEmpty() && enriched.trailers.isNotEmpty()) {
+                                addTrailer(enriched.trailers)
+                            }
+
+                            if (enriched.directors.isNotEmpty()) {
+                                syncData["tmdb_directors"] = enriched.directors.toJson()
+                            }
+                            if (enriched.creators.isNotEmpty()) {
+                                syncData["tmdb_creators"] = enriched.creators.toJson()
+                            }
+                            if (enriched.writers.isNotEmpty()) {
+                                syncData["tmdb_writers"] = enriched.writers.toJson()
+                            }
+                            if (enriched.productionCompanies.isNotEmpty()) {
+                                syncData["tmdb_production_companies"] = enriched.productionCompanies.toJson()
+                            }
+                            if (enriched.networks.isNotEmpty()) {
+                                syncData["tmdb_networks"] = enriched.networks.toJson()
+                            }
+                            if (enriched.moodTags.isNotEmpty()) {
+                                syncData["tmdb_mood_tags"] = enriched.moodTags.toJson()
+                            }
+                            if (enriched.contentDescriptors.isNotEmpty()) {
+                                syncData["tmdb_content_descriptors"] = enriched.contentDescriptors.toJson()
+                            }
+                            if (!enriched.tagline.isNullOrBlank()) {
+                                syncData["tmdb_branding_text"] = enriched.tagline!!
+                            }
+
+                            val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+                            val isRecentYear = this.year != null && (currentYear - this.year!! <= 0)
+                            val scoreVal = enriched.score?.let { it.toInt(100) / 10f } ?: 0f
+
+                            val badgeText = when {
+                                isRecentYear -> "Baru Ditambahkan"
+                                scoreVal >= 8.0f -> "Must Watch"
+                                (enriched.popularity ?: 0.0) >= 30.0 -> "Trending"
+                                else -> null
+                            }
+                            if (badgeText != null) {
+                                syncData["tmdb_content_badge"] = badgeText
+                            }
+
+                            if ((enriched.popularity ?: 0.0) >= 40.0) {
+                                val rank = when {
+                                    (enriched.popularity ?: 0.0) >= 100.0 -> 1
+                                    (enriched.popularity ?: 0.0) >= 80.0 -> 2
+                                    (enriched.popularity ?: 0.0) >= 60.0 -> 3
+                                    (enriched.popularity ?: 0.0) >= 50.0 -> 5
+                                    else -> 8
+                                }
+                                syncData["tmdb_top10_rank"] = rank.toString()
+                                val rankTitle = if (isMovieType) "#$rank in Movies Today" else "#$rank in TV Shows Today"
+                                syncData["tmdb_top10_rank_text"] = rankTitle
+                            }
+
+                            // Per-Episode TV Series Enrichment
+                            val targetTmdbId = enriched.tmdbId
+                            if (this is TvSeriesLoadResponse && targetTmdbId != null && this.episodes.isNotEmpty()) {
+                                val distinctSeasons = this.episodes.mapNotNull { it.season }.distinct()
+                                val seasonsMap = mutableMapOf<Int, List<TmdbProvider.TmdbEpisode>>()
+                                distinctSeasons.forEach { sNum ->
+                                    val epList = TmdbProvider.fetchTmdbSeasonEpisodes(targetTmdbId, sNum)
+                                    if (!epList.isNullOrEmpty()) {
+                                        seasonsMap[sNum] = epList
+                                    }
+                                }
+
+                                var epUpdated = false
+                                this.episodes.forEach { ep ->
+                                    val sNum = ep.season ?: 1
+                                    val epNum = ep.episode
+                                    val matchedTmdbEp = seasonsMap[sNum]?.firstOrNull { it.episodeNumber == epNum }
+                                    if (matchedTmdbEp != null) {
+                                        if (ep.description.isNullOrBlank() && !matchedTmdbEp.overview.isNullOrBlank()) {
+                                            ep.description = matchedTmdbEp.overview
+                                            epUpdated = true
+                                        }
+                                        if (ep.posterUrl.isNullOrBlank() && !matchedTmdbEp.stillPath.isNullOrBlank()) {
+                                            ep.posterUrl = TmdbProvider.getImageUrl(matchedTmdbEp.stillPath)
+                                            epUpdated = true
+                                        }
+                                        if ((ep.name.isNullOrBlank() || ep.name?.matches(Regex("""(?i)^episode\s*\d+$""")) == true) && !matchedTmdbEp.name.isNullOrBlank()) {
+                                            ep.name = matchedTmdbEp.name
+                                            epUpdated = true
+                                        }
+                                        if (ep.runTime == null && matchedTmdbEp.runtime != null) {
+                                            ep.runTime = matchedTmdbEp.runtime
+                                            epUpdated = true
+                                        }
+                                    }
+                                }
+                                if (epUpdated) {
+                                    updateEpisodes = true
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        logError(e)
+                    }
+                },
                 {
                     if (this !is AnimeLoadResponse) return@runAllAsync
                     // already exist, no need to run getTracker

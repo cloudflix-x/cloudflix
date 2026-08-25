@@ -264,7 +264,12 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
                         d.nextAiringDate?.asStringNull(context)?.let { date -> "$ep: $date" } ?: ep
                     } ?: d.nextAiringDate?.asStringNull(context)
                     val ongoingInfo = d.onGoingText?.asStringNull(context)
-                    val advisoriesText = listOfNotNull(ongoingInfo, nextAiring).joinToString(" • ").ifBlank { null }
+                    val advisoriesList = if (d.contentDescriptors.isNotEmpty()) {
+                        d.contentDescriptors + listOfNotNull(ongoingInfo, nextAiring)
+                    } else {
+                        listOfNotNull(ongoingInfo, nextAiring)
+                    }
+                    val advisoriesText = advisoriesList.distinct().joinToString(" • ").ifBlank { null }
 
                     MovieDetailsComposeScreen(
                         title = title,
@@ -304,6 +309,17 @@ class ResultFragmentTv : BaseFragment<FragmentResultTvBinding>(
                         hasTrailers = composeHasTrailersState,
                         resumeStatus = composeResumeWatchingState,
                         isMovie = composeEpisodesState.isEmpty() || composeResumeWatchingState?.isMovie == true,
+                        brandingText = d.brandingText,
+                        contentBadge = d.contentBadge,
+                        top10Rank = d.top10Rank,
+                        top10RankText = d.top10RankText,
+                        directors = d.directors,
+                        creators = d.creators,
+                        writers = d.writers,
+                        productionCompanies = d.productionCompanies,
+                        networks = d.networks,
+                        moodTags = d.moodTags,
+                        contentDescriptors = d.contentDescriptors,
                         onPlayClick = { handlePlayClick(storedData) },
                         onPlayLongClick = { handlePlayLongClick() },
                         onEpisodeClick = { ep ->
