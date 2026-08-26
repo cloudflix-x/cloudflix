@@ -796,11 +796,11 @@
     <string name="cache_time_settings">Cache Expiry Time</string>
     <string name="cache_time_summary">Control how long Home &amp; Detail data is cached. Set to 0 to disable cache and always fetch latest updates.</string>
     <string-array name="cache_time_names">
-        <item>Off (Always Reload)</item>
+        <item>Off (Default)</item>
         <item>10 Minutes</item>
         <item>30 Minutes</item>
         <item>1 Hour</item>
-        <item>3 Hours (Default)</item>
+        <item>3 Hours</item>
         <item>6 Hours</item>
         <item>1 Day</item>
         <item>3 Days</item>

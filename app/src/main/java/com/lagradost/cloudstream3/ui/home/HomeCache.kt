@@ -1,5 +1,6 @@
 package com.lagradost.cloudstream3.ui.home
 
+import androidx.annotation.Keep
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.lagradost.cloudstream3.CloudStreamApp.Companion.getKey
@@ -20,11 +21,13 @@ import com.lagradost.cloudstream3.DubStatus
 import com.lagradost.cloudstream3.APIHolder.unixTime
 import com.lagradost.cloudstream3.mvvm.logError
 import com.lagradost.cloudstream3.utils.DataStoreHelper
-import java.util.concurrent.ConcurrentHashMap
+import java.util.Collections
 
 object HomeCache {
     private const val HOME_CACHE_FOLDER = "home_cache"
+    private const val MAX_MEMORY_CACHE_SIZE = 5
 
+    @Keep
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class CachedSearchResponse(
         @JsonProperty("name") val name: String,
@@ -149,6 +152,7 @@ object HomeCache {
         }
     }
 
+    @Keep
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class CachedHomePageList(
         @JsonProperty("name") val name: String,
@@ -175,6 +179,7 @@ object HomeCache {
         }
     }
 
+    @Keep
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class CachedHomePageResponse(
         @JsonProperty("items") val items: List<CachedHomePageList>,
@@ -198,13 +203,20 @@ object HomeCache {
         }
     }
 
+    @Keep
     @JsonIgnoreProperties(ignoreUnknown = true)
     data class CachedHomeData(
         @JsonProperty("unixTime") val unixTime: Long,
         @JsonProperty("responses") val responses: List<CachedHomePageResponse>
     )
 
-    private val memoryCache = ConcurrentHashMap<String, Pair<Long, List<HomePageResponse?>>>()
+    private val memoryCache: MutableMap<String, Pair<Long, List<HomePageResponse?>>> = Collections.synchronizedMap(
+        object : LinkedHashMap<String, Pair<Long, List<HomePageResponse?>>>(MAX_MEMORY_CACHE_SIZE, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Pair<Long, List<HomePageResponse?>>>?): Boolean {
+                return size > MAX_MEMORY_CACHE_SIZE
+            }
+        }
+    )
 
     fun getHomeCache(apiName: String): List<HomePageResponse?>? {
         if (!DataStoreHelper.isCacheEnabled) return null

@@ -719,9 +719,14 @@ class HomeParentItemAdapterPreview(
                     }
 
                     val currentPos = previewViewpager.currentItem
-                    val item = preview.value.second.getOrNull(currentPos) ?: preview.value.second.firstOrNull()
+                    val items = preview.value.second
+                    val (item, pos) = if (currentPos in items.indices) {
+                        items[currentPos] to currentPos
+                    } else {
+                        items.firstOrNull()?.let { it to 0 } ?: (null to 0)
+                    }
                     if (item != null) {
-                        onSelect(item, currentPos.coerceAtLeast(0))
+                        onSelect(item, pos)
                     }
                 }
 

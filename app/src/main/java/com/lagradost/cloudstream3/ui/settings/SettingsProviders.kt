@@ -50,7 +50,7 @@ class SettingsProviders : BasePreferenceFragmentCompat() {
 
         getPref(R.string.cache_time_key)?.setOnPreferenceClickListener {
             val currentVal = DataStoreHelper.cacheTimeMinutes
-            val currentIndex = cacheValues.indexOf(currentVal).let { if (it == -1) 4 else it }
+            val currentIndex = cacheValues.indexOf(currentVal).let { if (it == -1) 0 else it }
 
             activity?.showBottomDialog(
                 cacheNames.toList(),
@@ -59,7 +59,7 @@ class SettingsProviders : BasePreferenceFragmentCompat() {
                 true,
                 {}
             ) { selectedIndex ->
-                val selectedMinutes = cacheValues.getOrNull(selectedIndex) ?: 180
+                val selectedMinutes = cacheValues.getOrNull(selectedIndex) ?: 0
                 DataStoreHelper.cacheTimeMinutes = selectedMinutes
                 updateCacheSummary()
             }

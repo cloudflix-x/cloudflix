@@ -269,7 +269,7 @@ class HomeViewModel : ViewModel() {
                     current.hasNext = false
                 }
             }
-            _page.postValue(Resource.Success(expandable))
+            _page.postValue(Resource.Success(HashMap(expandable)))
         }
 
         lock -= name
@@ -408,42 +408,47 @@ class HomeViewModel : ViewModel() {
         currentShuffledList = emptyList()
         _preview.postValue(Resource.Loading())
 
-        if (repo?.hasMainPage != true) {
-            _page.postValue(Resource.Success(emptyMap()))
-            _preview.postValue(Resource.Failure(false, "No homepage"))
-            return@ioSafe
-        }
+        expandable.clear()
 
-        // cancel the current preview expand as that is no longer relevant
-        addJob?.cancel()
-
-        val cachedData = if (forceReload) null else HomeCache.getHomeCache(api.name)
-        var hadCachedData = false
-        if (!cachedData.isNullOrEmpty()) {
-            hadCachedData = true
-            processHomePageData(cachedData)
-        } else {
-            _page.postValue(Resource.Loading())
-        }
-
-        when (val data = repo?.getMainPage(1, null)) {
-            is Resource.Success -> {
-                HomeCache.setHomeCache(api.name, data.value)
-                processHomePageData(data.value)
+        try {
+            if (repo?.hasMainPage != true) {
+                _page.postValue(Resource.Success(emptyMap()))
+                _preview.postValue(Resource.Failure(false, "No homepage"))
+                return@ioSafe
             }
 
-            is Resource.Failure -> {
-                if (!hadCachedData) {
-                    @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
-                    _page.postValue(data!!)
-                    @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
-                    _preview.postValue(data!!)
+            // cancel the current preview expand as that is no longer relevant
+            addJob?.cancel()
+
+            val cachedData = if (forceReload) null else HomeCache.getHomeCache(api.name)
+            var hadCachedData = false
+            if (!cachedData.isNullOrEmpty()) {
+                hadCachedData = true
+                processHomePageData(cachedData)
+            } else {
+                _page.postValue(Resource.Loading())
+            }
+
+            when (val data = repo?.getMainPage(1, null)) {
+                is Resource.Success -> {
+                    HomeCache.setHomeCache(api.name, data.value)
+                    processHomePageData(data.value)
                 }
-            }
 
-            else -> Unit
+                is Resource.Failure -> {
+                    if (!hadCachedData) {
+                        @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
+                        _page.postValue(data!!)
+                        @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
+                        _preview.postValue(data!!)
+                    }
+                }
+
+                else -> Unit
+            }
+        } finally {
+            isCurrentlyLoadingName = null
         }
-        isCurrentlyLoadingName = null
     }
 
     fun click(callback: SearchClickCallback) {
@@ -498,6 +503,7 @@ class HomeViewModel : ViewModel() {
         MainActivity.mainPluginsLoadedEvent -= ::afterMainPluginsLoaded
         MainActivity.reloadHomeEvent -= ::reloadHome
         MainActivity.reloadAccountEvent -= ::reloadAccount
+        expandable.clear()
         super.onCleared()
     }
 
@@ -543,7 +549,7 @@ class HomeViewModel : ViewModel() {
 
             // if we don't need to reload and we have a valid homepage or currently loading the same thing then return
             val currentLoading = isCurrentlyLoadingName
-            if (!forceReload && (currentPage is Resource.Success && currentPage.value.isNotEmpty() || (currentLoading != null && currentLoading == preferredApiName))) {
+            if (!forceReload && ((_apiName.value == preferredApiName && currentPage is Resource.Success && currentPage.value.isNotEmpty()) || (currentLoading != null && currentLoading == preferredApiName))) {
                 return@ioSafe
             }
 
