@@ -309,12 +309,16 @@ class HomeViewModel : ViewModel() {
             return@ioSafe
         }
 
+        if (forceReload || isCurrentlyLoadingName != api.name) {
+            expandable.clear()
+        }
+
         val cachedData = if (forceReload) null else HomeCache.getHomeCache(api.name)
         var hadCachedData = false
         if (!cachedData.isNullOrEmpty()) {
             hadCachedData = true
             processHomePageData(cachedData)
-        } else {
+        } else if (expandable.isEmpty()) {
             _page.postValue(Resource.Loading())
         }
 
@@ -325,7 +329,7 @@ class HomeViewModel : ViewModel() {
             }
 
             is Resource.Failure -> {
-                if (!hadCachedData) {
+                if (!hadCachedData && expandable.isEmpty()) {
                     @Suppress("UNNECESSARY_NOT_NULL_ASSERTION")
                     _page.postValue(data!!)
                 }
@@ -380,6 +384,10 @@ class HomeViewModel : ViewModel() {
         MainActivity.mainPluginsLoadedEvent += ::afterMainPluginsLoaded
         MainActivity.reloadHomeEvent += ::reloadHome
         MainActivity.reloadAccountEvent += ::reloadAccount
+
+        DataStoreHelper.currentHomePage?.let { homeApi ->
+            loadAndCancel(homeApi, forceReload = false)
+        }
     }
 
     override fun onCleared() {
@@ -455,9 +463,17 @@ class HomeViewModel : ViewModel() {
                 if (PluginManager.loadedOnlinePlugins || PluginManager.isSafeMode()) {
                     loadAndCancel(noneApi, forceReload)
                 } else {
-                    _page.postValue(Resource.Loading())
-                    if (preferredApiName != null)
+                    if (preferredApiName != null) {
                         _apiName.postValue(preferredApiName)
+                        val cachedData = if (forceReload) null else HomeCache.getHomeCache(preferredApiName)
+                        if (!cachedData.isNullOrEmpty()) {
+                            processHomePageData(cachedData)
+                        } else if (expandable.isEmpty()) {
+                            _page.postValue(Resource.Loading())
+                        }
+                    } else if (expandable.isEmpty()) {
+                        _page.postValue(Resource.Loading())
+                    }
                 }
             } else {
                 // if the api is found, then set it to it and save key
