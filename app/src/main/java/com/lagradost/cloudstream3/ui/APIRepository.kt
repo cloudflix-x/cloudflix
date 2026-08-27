@@ -63,6 +63,10 @@ class APIRepository(val api: MainAPI) {
         fun getTimeout(desired: Long?): Long {
             return (desired ?: DEFAULT_TIMEOUT).coerceIn(MIN_TIMEOUT, MAX_TIMEOUT)
         }
+
+        fun clearCache() {
+            cache.clear()
+        }
     }
 
     private fun afterPluginsLoaded(forceReload: Boolean) {

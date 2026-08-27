@@ -1,10 +1,12 @@
 package com.lagradost.cloudstream3.ui.home
 
+import android.content.Context
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.lagradost.cloudstream3.CloudStreamApp.Companion.getKey
 import com.lagradost.cloudstream3.CloudStreamApp.Companion.setKey
 import com.lagradost.cloudstream3.CloudStreamApp.Companion.removeKey
+import com.lagradost.cloudstream3.utils.DataStore.removeKeys
 import com.lagradost.cloudstream3.HomePageResponse
 import com.lagradost.cloudstream3.HomePageList
 import com.lagradost.cloudstream3.SearchResponse
@@ -267,5 +269,18 @@ object HomeCache {
 
     fun clear() {
         memoryCache.clear()
+    }
+
+    fun clearAll(context: Context? = null) {
+        memoryCache.clear()
+        try {
+            if (context != null) {
+                context.removeKeys(HOME_CACHE_FOLDER)
+            } else {
+                com.lagradost.cloudstream3.CloudStreamApp.removeKeys(HOME_CACHE_FOLDER)
+            }
+        } catch (e: Exception) {
+            logError(e)
+        }
     }
 }

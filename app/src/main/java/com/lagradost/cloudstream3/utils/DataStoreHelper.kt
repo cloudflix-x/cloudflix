@@ -162,7 +162,7 @@ object DataStoreHelper {
 
     var cacheTimeMinutes: Int by UserPreferenceDelegate(
         "cache_time_pref",
-        180
+        0
     )
 
     val isCacheEnabled: Boolean get() = cacheTimeMinutes > 0

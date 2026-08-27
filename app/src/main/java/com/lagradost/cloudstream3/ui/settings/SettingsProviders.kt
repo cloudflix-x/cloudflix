@@ -2,13 +2,18 @@ package com.lagradost.cloudstream3.ui.settings
 
 import android.os.Bundle
 import android.view.View
+import android.widget.Toast
 import androidx.core.content.edit
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.NavOptions
 import androidx.preference.PreferenceManager
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.CommonActivity.showToast
+import com.lagradost.cloudstream3.mvvm.logError
 import com.lagradost.cloudstream3.ui.APIRepository
 import com.lagradost.cloudstream3.ui.BasePreferenceFragmentCompat
+import com.lagradost.cloudstream3.ui.home.HomeCache
+import com.lagradost.cloudstream3.ui.player.RepoLinkGenerator
 import com.lagradost.cloudstream3.ui.settings.SettingsFragment.Companion.getPref
 import com.lagradost.cloudstream3.ui.settings.SettingsFragment.Companion.setPaddingBottom
 import com.lagradost.cloudstream3.ui.settings.SettingsFragment.Companion.setToolBarScrollFlags
@@ -50,7 +55,7 @@ class SettingsProviders : BasePreferenceFragmentCompat() {
 
         getPref(R.string.cache_time_key)?.setOnPreferenceClickListener {
             val currentVal = DataStoreHelper.cacheTimeMinutes
-            val currentIndex = cacheValues.indexOf(currentVal).let { if (it == -1) 4 else it }
+            val currentIndex = cacheValues.indexOf(currentVal).let { if (it == -1) 0 else it }
 
             activity?.showBottomDialog(
                 cacheNames.toList(),
@@ -59,9 +64,21 @@ class SettingsProviders : BasePreferenceFragmentCompat() {
                 true,
                 {}
             ) { selectedIndex ->
-                val selectedMinutes = cacheValues.getOrNull(selectedIndex) ?: 180
+                val selectedMinutes = cacheValues.getOrNull(selectedIndex) ?: 0
                 DataStoreHelper.cacheTimeMinutes = selectedMinutes
                 updateCacheSummary()
+            }
+            return@setOnPreferenceClickListener true
+        }
+
+        getPref(R.string.clear_provider_cache_key)?.setOnPreferenceClickListener {
+            try {
+                HomeCache.clearAll(context)
+                APIRepository.clearCache()
+                RepoLinkGenerator.cache.clear()
+                showToast(R.string.clear_provider_cache_cleared, Toast.LENGTH_SHORT)
+            } catch (e: Exception) {
+                logError(e)
             }
             return@setOnPreferenceClickListener true
         }
