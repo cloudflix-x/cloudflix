@@ -200,8 +200,7 @@
             android:gravity="center"
             android:nextFocusLeft="@id/navigation_home"
             tools:text="Hello!"
-            android:nextFocusRight="@id/home_preview_settings_button"
-            android:nextFocusDown="@id/home_preview_info_btt" >
+            android:nextFocusRight="@id/home_preview_settings_button" >
             <requestFocus />
         </com.google.android.material.button.MaterialButton>
 
@@ -215,7 +214,6 @@
             android:focusable="true"
             android:nextFocusLeft="@id/home_change_api"
             android:nextFocusRight="@id/home_preview_reload_provider"
-            android:nextFocusDown="@id/home_preview_info_btt"
             android:padding="10dp"
             android:src="@drawable/ic_baseline_tune_24"
             android:tag="@string/tv_no_focus_tag"
@@ -233,7 +231,6 @@
             android:nextFocusLeft="@id/home_preview_settings_button"
             android:nextFocusRight="@id/home_preview_search_button"
             android:nextFocusUp="@id/home_preview_reload_provider"
-            android:nextFocusDown="@id/home_preview_info_btt"
             android:padding="10dp"
             tools:visibility="visible"
             android:src="@drawable/ic_refresh"
@@ -252,7 +249,6 @@
             android:focusable="true"
             android:nextFocusLeft="@id/home_preview_reload_provider"
             android:nextFocusRight="@id/home_switch_account"
-            android:nextFocusDown="@id/home_preview_info_btt"
             android:padding="10dp"
             android:src="@drawable/search_icon"
             android:tag="@string/tv_no_focus_tag"
@@ -269,7 +265,6 @@
             android:focusable="true"
             android:nextFocusLeft="@id/home_preview_search_button"
             android:nextFocusRight="@id/home_switch_account"
-            android:nextFocusDown="@id/home_preview_info_btt"
             android:padding="10dp"
             android:src="@drawable/ic_baseline_play_arrow_24"
             android:tag="@string/tv_no_focus_tag"

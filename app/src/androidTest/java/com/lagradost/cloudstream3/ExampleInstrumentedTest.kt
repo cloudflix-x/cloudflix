@@ -114,8 +114,7 @@ class ExampleInstrumentedTest {
                 testAllLayouts<SearchResultGridBinding>(activity, R.layout.search_result_grid, R.layout.search_result_grid_expanded)
 
 
-               // testAllLayouts<HomeScrollViewBinding>(activity, R.layout.home_scroll_view, R.layout.home_scroll_view_tv)
-               // testAllLayouts<HomeScrollViewTvBinding>(activity, R.layout.home_scroll_view, R.layout.home_scroll_view_tv)
+
 
                 testAllLayouts<HomepageParentTvBinding>(activity, R.layout.homepage_parent_tv, R.layout.homepage_parent_emulator, R.layout.homepage_parent)
                 testAllLayouts<HomepageParentEmulatorBinding>(activity, R.layout.homepage_parent_tv, R.layout.homepage_parent_emulator, R.layout.homepage_parent)

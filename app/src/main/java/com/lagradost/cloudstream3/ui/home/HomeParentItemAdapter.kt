@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
-import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.R
 import com.lagradost.cloudstream3.databinding.HomepageParentBinding
 import com.lagradost.cloudstream3.mvvm.logError
@@ -26,12 +25,6 @@ import com.lagradost.cloudstream3.ui.settings.Globals.TV
 import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
 import com.lagradost.cloudstream3.utils.AppContextUtils.isRecyclerScrollable
 
-class LoadClickCallback(
-    val action: Int = 0,
-    val view: View,
-    val position: Int,
-    val response: LoadResponse
-)
 
 open class ParentItemAdapter(
     id: Int,

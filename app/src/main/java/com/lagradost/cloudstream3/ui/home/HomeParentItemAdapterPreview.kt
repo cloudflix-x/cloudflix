@@ -12,25 +12,18 @@ import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewbinding.ViewBinding
-import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
-import com.google.android.material.navigation.NavigationBarItemView
 import com.lagradost.cloudstream3.CloudStreamApp.Companion.getActivity
 import com.lagradost.cloudstream3.CommonActivity.activity
 import com.lagradost.cloudstream3.HomePageList
-import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.MainActivity
 import com.lagradost.cloudstream3.R
 import com.lagradost.cloudstream3.SearchResponse
 import com.lagradost.cloudstream3.databinding.FragmentHomeHeadBinding
 import com.lagradost.cloudstream3.databinding.FragmentHomeHeadTvBinding
-import com.lagradost.cloudstream3.mvvm.Resource
-import com.lagradost.cloudstream3.mvvm.debugException
 import com.lagradost.cloudstream3.mvvm.logError
 import com.lagradost.cloudstream3.mvvm.observe
 import com.lagradost.cloudstream3.ui.ViewHolderState
@@ -39,28 +32,20 @@ import com.lagradost.cloudstream3.ui.account.AccountHelper.showAccountEditDialog
 import com.lagradost.cloudstream3.ui.account.AccountHelper.showAccountSelectLinear
 import com.lagradost.cloudstream3.ui.account.AccountViewModel
 import com.lagradost.cloudstream3.ui.result.FOCUS_SELF
-import com.lagradost.cloudstream3.ui.result.ResultFragment.bindLogo
-import com.lagradost.cloudstream3.ui.result.ResultViewModel2
 import com.lagradost.cloudstream3.ui.result.START_ACTION_RESUME_LATEST
-import com.lagradost.cloudstream3.ui.result.getId
 import com.lagradost.cloudstream3.ui.result.setLinearListLayout
 import com.lagradost.cloudstream3.ui.search.SEARCH_ACTION_LOAD
 import com.lagradost.cloudstream3.ui.search.SEARCH_ACTION_SHOW_METADATA
 import com.lagradost.cloudstream3.ui.search.SearchClickCallback
+import com.lagradost.cloudstream3.ui.setRecycledViewPool
 import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
 import com.lagradost.cloudstream3.ui.settings.Globals.TV
 import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
-import com.lagradost.cloudstream3.utils.AppContextUtils.html
 import com.lagradost.cloudstream3.utils.AppContextUtils.setDefaultFocus
 import com.lagradost.cloudstream3.utils.DataStoreHelper
 import com.lagradost.cloudstream3.utils.ImageLoader.loadImage
-import com.lagradost.cloudstream3.utils.SingleSelectionHelper.showBottomDialog
 import com.lagradost.cloudstream3.utils.SingleSelectionHelper.showOptionSelectStringRes
 import com.lagradost.cloudstream3.utils.UIHelper.fixPaddingStatusbarMargin
-import com.lagradost.cloudstream3.utils.UIHelper.fixPaddingStatusbarView
-import com.lagradost.cloudstream3.utils.UIHelper.populateChips
-import androidx.core.graphics.toColorInt
-import com.lagradost.cloudstream3.ui.setRecycledViewPool
 
 class HomeParentItemAdapterPreview(
     private val viewModel: HomeViewModel,
@@ -144,7 +129,6 @@ class HomeParentItemAdapterPreview(
                     "bookmarkRecyclerView",
                     bookmarkRecyclerView.layoutManager?.onSaveInstanceState()
                 )
-                //putInt("previewViewpager", previewViewpager.currentItem)
             }
 
         override fun restore(state: Bundle) {
@@ -156,12 +140,6 @@ class HomeParentItemAdapterPreview(
             }
         }
 
-        val previewAdapter = HomeScrollAdapter { view, position, item ->
-            viewModel.click(
-                LoadClickCallback(0, view, position, item)
-            )
-        }
-
         private val resumeAdapter = ResumeItemAdapter(
             nextFocusUp = itemView.nextFocusUpId,
             nextFocusDown = itemView.nextFocusDownId,
@@ -170,7 +148,6 @@ class HomeParentItemAdapterPreview(
                     val context = v.context ?: return@ResumeItemAdapter
                     val builder: AlertDialog.Builder =
                         AlertDialog.Builder(context)
-                    // Copy pasted from https://github.com/recloudstream/cloudstream/pull/1658/files
                     builder.apply {
                         setTitle(R.string.clear_history)
                         setMessage(
@@ -188,7 +165,6 @@ class HomeParentItemAdapterPreview(
                         show().setDefaultFocus()
                     }
                 } catch (t: Throwable) {
-                    // This may throw a formatting error
                     logError(t)
                 }
             },
@@ -222,7 +198,7 @@ class HomeParentItemAdapterPreview(
                                 )
                             )
                         }
-                        //info
+                        // info
                         1 -> {
                             viewModel.click(
                                 SearchClickCallback(
@@ -244,6 +220,7 @@ class HomeParentItemAdapterPreview(
                     }
                 }
             })
+
         private val bookmarkAdapter = HomeChildItemAdapter(
             id = "bookmarkAdapter".hashCode(),
             nextFocusUp = itemView.nextFocusUpId,
@@ -258,62 +235,8 @@ class HomeParentItemAdapterPreview(
                 callback.card,
                 load = false
             )
-            /*
-            callback.view.context?.getActivity()?.showOptionSelectStringRes(
-                callback.view,
-                callback.card.posterUrl,
-                listOf(
-                    R.string.action_open_watching,
-                    R.string.action_remove_from_bookmarks,
-                ),
-                listOf(
-                    R.string.action_open_play,
-                    R.string.action_open_watching,
-                    R.string.action_remove_from_bookmarks
-                )
-            ) { (isTv, actionId) ->
-                when (actionId + if (isTv) 0 else 1) { // play
-                    0 -> {
-                        viewModel.click(
-                            SearchClickCallback(
-                                START_ACTION_RESUME_LATEST,
-                                callback.view,
-                                -1,
-                                callback.card
-                            )
-                        )
-                    }
-
-                    1 -> { // info
-                        viewModel.click(
-                            SearchClickCallback(
-                                SEARCH_ACTION_LOAD,
-                                callback.view,
-                                -1,
-                                callback.card
-                            )
-                        )
-                    }
-
-                    2 -> { // remove
-                        DataStoreHelper.setResultWatchState(
-                            callback.card.id,
-                            WatchType.NONE.internalId
-                        )
-                        viewModel.reloadStored()
-                    }
-                }
-            }
-            */
         }
 
-        private val previewViewpager: ViewPager2 =
-            itemView.findViewById(R.id.home_preview_viewpager)
-
-        private val previewViewpagerText: ViewGroup =
-            itemView.findViewById(R.id.home_preview_viewpager_text)
-
-        // private val previewHeader: FrameLayout = itemView.findViewById(R.id.home_preview)
         private val resumeHolder: View = itemView.findViewById(R.id.home_watch_holder)
         private val resumeRecyclerView: RecyclerView =
             itemView.findViewById(R.id.home_watch_child_recyclerview)
@@ -325,174 +248,9 @@ class HomeParentItemAdapterPreview(
         private val headProfilePicCard: View? =
             itemView.findViewById(R.id.home_head_profile_padding)
 
-        private val alternateHeadProfilePic: ImageView? =
-            itemView.findViewById(R.id.alternate_home_head_profile_pic)
-        private val alternateHeadProfilePicCard: View? =
-            itemView.findViewById(R.id.alternate_home_head_profile_padding)
-
         private val topPadding: View? = itemView.findViewById(R.id.home_padding)
 
-        private val alternativeAccountPadding: View? =
-            itemView.findViewById(R.id.alternative_account_padding)
-
-        private val homeNonePadding: View = itemView.findViewById(R.id.home_none_padding)
-
-        fun onSelect(item: LoadResponse, position: Int) {
-            (binding as? FragmentHomeHeadTvBinding)?.apply {
-                homePreviewDescription.isGone = item.plot.isNullOrBlank()
-                homePreviewDescription.text = item.plot?.html() ?: ""
-
-                val scoreText = item.score?.toStringNull(0.1, 10, 1, false)
-
-                scoreText?.let { score ->
-                    homePreviewScore.text =
-                        homePreviewScore.context.getString(R.string.extension_rating, score)
-
-                    // while it should never fail, we do this just in case
-                    val rating = score.toDoubleOrNull() ?: item.score?.toDouble() ?: 0.0
-
-                    val color = when {
-                        rating < 5.0 -> "#eb2f2f".toColorInt() // Red
-                        rating < 8.0 -> "#eda009".toColorInt() // Yellow
-                        else -> "#3bb33b".toColorInt() // Green
-                    }
-                    homePreviewScore.backgroundTintList =
-                        android.content.res.ColorStateList.valueOf(color)
-                }
-                homePreviewScore.isGone = scoreText == null
-
-                item.year?.let { year ->
-                    homePreviewYear.text = year.toString()
-                }
-                homePreviewYear.isGone = item.year == null
-
-                val duration = item.duration
-                duration?.let { min ->
-                    homePreviewDuration.text =
-                        homePreviewDuration.context.getString(R.string.duration_format, min)
-                }
-                homePreviewDuration.isGone = duration == null || duration <= 0
-
-                val castText = item.actors?.take(3)?.joinToString(", ") { it.actor.name }
-                if (!castText.isNullOrBlank()) {
-                    homePreviewCast.text =
-                        homePreviewCast.context.getString(R.string.cast_format, castText)
-                    homePreviewCast.isVisible = true
-                } else {
-                    homePreviewCast.isVisible = false
-                }
-
-                homePreviewText.text = item.name.html()
-                populateChips(
-                    homePreviewTags,
-                    item.tags?.take(6) ?: emptyList(),
-                    R.style.ChipFilledSemiTransparent,
-                    null
-                )
-
-
-                bindLogo(
-                    url = item.logoUrl,
-                    headers = item.posterHeaders,
-                    titleView = homePreviewText,
-                    logoView = homeBackgroundPosterWatermarkBadgeHolder
-                )
-
-                homePreviewTags.isGone =
-                    item.tags.isNullOrEmpty()
-
-                homePreviewInfoBtt.setOnClickListener { view ->
-                    viewModel.click(
-                        LoadClickCallback(0, view, position, item)
-                    )
-                }
-            }
-            (binding as? FragmentHomeHeadBinding)?.apply {
-                //homePreviewImage.setImage(item.posterUrl, item.posterHeaders)
-
-                homePreviewPlay.setOnClickListener { view ->
-                    viewModel.click(
-                        LoadClickCallback(
-                            START_ACTION_RESUME_LATEST,
-                            view,
-                            position,
-                            item
-                        )
-                    )
-                }
-
-                homePreviewInfo.setOnClickListener { view ->
-                    viewModel.click(
-                        LoadClickCallback(0, view, position, item)
-                    )
-                }
-
-                // very ugly code, but I don't care
-                val id = item.getId()
-                val watchType =
-                    DataStoreHelper.getResultWatchState(id)
-                homePreviewBookmark.setText(watchType.stringRes)
-                homePreviewBookmark.setCompoundDrawablesWithIntrinsicBounds(
-                    null,
-                    ContextCompat.getDrawable(
-                        homePreviewBookmark.context,
-                        watchType.iconRes
-                    ),
-                    null,
-                    null
-                )
-
-                homePreviewBookmark.setOnClickListener { fab ->
-                    fab.context.getActivity()?.showBottomDialog(
-                        WatchType.entries
-                            .map { fab.context.getString(it.stringRes) }
-                            .toList(),
-                        DataStoreHelper.getResultWatchState(id).ordinal,
-                        fab.context.getString(R.string.action_add_to_bookmarks),
-                        showApply = false,
-                        {}) {
-                        val newValue = WatchType.entries[it]
-
-                        ResultViewModel2().updateWatchStatus(
-                            newValue,
-                            fab.context,
-                            item
-                        ) { statusChanged: Boolean ->
-                            if (!statusChanged) return@updateWatchStatus
-
-                            homePreviewBookmark.setCompoundDrawablesWithIntrinsicBounds(
-                                null,
-                                ContextCompat.getDrawable(
-                                    homePreviewBookmark.context,
-                                    newValue.iconRes
-                                ),
-                                null,
-                                null
-                            )
-                            homePreviewBookmark.setText(newValue.stringRes)
-                        }
-                    }
-                }
-            }
-        }
-
-        private val previewCallback: ViewPager2.OnPageChangeCallback =
-            object : ViewPager2.OnPageChangeCallback() {
-                override fun onPageSelected(position: Int) {
-                    previewAdapter.apply {
-                        if (position >= itemCount - 1 && hasMoreItems) {
-                            hasMoreItems = false // don't make two requests
-                            viewModel.loadMoreHomeScrollResponses()
-                        }
-                    }
-                    val item = previewAdapter.getItemOrNull(position) ?: return
-                    onSelect(item, position)
-                }
-            }
-
-        fun onViewDetachedFromWindow() {
-            previewViewpager.unregisterOnPageChangeCallback(previewCallback)
-        }
+        fun onViewDetachedFromWindow() = Unit
 
         private val toggleList = listOf<Pair<Chip, WatchType>>(
             Pair(itemView.findViewById(R.id.home_type_watching_btt), WatchType.WATCHING),
@@ -507,9 +265,6 @@ class HomeParentItemAdapterPreview(
         fun bind() = Unit
 
         init {
-            previewViewpager.setPageTransformer(HomeScrollTransformer())
-
-            previewViewpager.adapter = previewAdapter
             resumeRecyclerView.adapter = resumeAdapter
             bookmarkRecyclerView.setRecycledViewPool(HomeChildItemAdapter.sharedPool)
             bookmarkRecyclerView.adapter = bookmarkAdapter
@@ -540,15 +295,9 @@ class HomeParentItemAdapterPreview(
             }
 
             headProfilePicCard?.isGone = isLayout(TV or EMULATOR)
-            alternateHeadProfilePicCard?.isGone = isLayout(TV or EMULATOR)
 
-            (headProfilePic ?: alternateHeadProfilePic)?.observe(viewModel.currentAccount) { currentAccount ->
-                headProfilePic?.loadImage(currentAccount?.image)
-                alternateHeadProfilePic?.loadImage(currentAccount?.image)
-            }
-
-            headProfilePicCard?.setOnClickListener {
-                activity?.showAccountSelectLinear()
+            headProfilePic?.observe(viewModel.currentAccount) { currentAccount ->
+                headProfilePic.loadImage(currentAccount?.image)
             }
 
             fun showAccountEditBox(context: Context): Boolean {
@@ -570,70 +319,12 @@ class HomeParentItemAdapterPreview(
                 } else false
             }
 
-            alternateHeadProfilePicCard?.setOnLongClickListener {
-                showAccountEditBox(it.context)
-            }
             headProfilePicCard?.setOnLongClickListener {
                 showAccountEditBox(it.context)
             }
 
-            alternateHeadProfilePicCard?.setOnClickListener {
+            headProfilePicCard?.setOnClickListener {
                 activity?.showAccountSelectLinear()
-            }
-
-            (binding as? FragmentHomeHeadTvBinding)?.apply {
-                /*homePreviewChangeApi.setOnClickListener { view ->
-                    view.context.selectHomepage(viewModel.repo?.name) { api ->
-                        viewModel.loadAndCancel(api, forceReload = true, fromUI = true)
-                    }
-                }
-                homePreviewReloadProvider.setOnClickListener {
-                    viewModel.loadAndCancel(
-                        viewModel.apiName.value ?: noneApi.name,
-                        forceReload = true,
-                        fromUI = true
-                    )
-                    showToast(R.string.action_reload, Toast.LENGTH_SHORT)
-                    true
-                }
-                homePreviewSearchButton.setOnClickListener { _ ->
-                    // Open blank screen.
-                    viewModel.queryTextSubmit("")
-                }*/
-
-                // A workaround to the focus problem of always centering the view on focus
-                // as that causes higher android versions to stretch the ui when switching between shows
-                var lastFocusTimeoutMs = 0L
-                homePreviewInfoBtt.setOnFocusChangeListener { view, hasFocus ->
-                    val lastFocusMs = lastFocusTimeoutMs
-                    // Always reset timer, as we only want to update
-                    // it if we have not interacted in half a second
-                    lastFocusTimeoutMs = System.currentTimeMillis()
-                    if (!hasFocus) return@setOnFocusChangeListener
-                    if (lastFocusMs + 500L < System.currentTimeMillis()) {
-                        MainActivity.centerView(view)
-                    }
-                }
-
-                homePreviewHiddenNextFocus.setOnFocusChangeListener { _, hasFocus ->
-                    if (!hasFocus) return@setOnFocusChangeListener
-                    previewViewpager.setCurrentItem(previewViewpager.currentItem + 1, true)
-                    homePreviewInfoBtt.requestFocus()
-                }
-
-                homePreviewHiddenPrevFocus.setOnFocusChangeListener { _, hasFocus ->
-                    if (!hasFocus) return@setOnFocusChangeListener
-                    if (previewViewpager.currentItem <= 0) {
-                        //Focus the Home item as the default focus will be the header item
-                        (activity as? MainActivity)?.binding?.navRailView?.findViewById<NavigationBarItemView>(
-                            R.id.navigation_home
-                        )?.requestFocus()
-                    } else {
-                        previewViewpager.setCurrentItem(previewViewpager.currentItem - 1, true)
-                        binding.homePreviewInfoBtt.requestFocus()
-                        //binding.homePreviewPlayBtt.requestFocus()
-                    }
-                }
             }
 
             (binding as? FragmentHomeHeadBinding)?.apply {
@@ -648,62 +339,6 @@ class HomeParentItemAdapterPreview(
                         return true
                     }
                 })
-            }
-        }
-
-        private fun updatePreview(preview: Resource<Pair<Boolean, List<LoadResponse>>>) {
-            if (preview is Resource.Success) {
-                homeNonePadding.apply {
-                    val params = layoutParams
-                    params.height = 0
-                    layoutParams = params
-                }
-            } else fixPaddingStatusbarView(homeNonePadding)
-
-            when (preview) {
-                is Resource.Success -> {
-                    previewAdapter.submitList(preview.value.second)
-                    previewAdapter.hasMoreItems = preview.value.first
-                    /*if (!.setItems(
-                            preview.value.second,
-                            preview.value.first
-                        )
-                    ) {
-                        // this might seam weird and useless, however this prevents a very weird andrid bug were the viewpager is not rendered properly
-                        // I have no idea why that happens, but this is my ducktape solution
-                        previewViewpager.setCurrentItem(0, false)
-                        previewViewpager.beginFakeDrag()
-                        previewViewpager.fakeDragBy(1f)
-                        previewViewpager.endFakeDrag()
-                        previewCallback.onPageSelected(0)
-                        //previewHeader.isVisible = true
-                    }*/
-
-                    previewViewpager.isVisible = true
-                    previewViewpagerText.isVisible = true
-                    alternativeAccountPadding?.isVisible = false
-                    (binding as? FragmentHomeHeadTvBinding)?.apply {
-                        homePreviewInfoBtt.isVisible = true
-                    }
-                    // Explicitly bind the current item to ensure instant loading
-                    val currentPos = previewViewpager.currentItem
-                    val item = preview.value.second.getOrNull(currentPos)
-                    if (item != null) {
-                        onSelect(item, currentPos)
-                    }
-                }
-
-                else -> {
-                    previewAdapter.submitList(listOf())
-                    previewViewpager.setCurrentItem(0, false)
-                    previewViewpager.isVisible = false
-                    previewViewpagerText.isVisible = false
-                    alternativeAccountPadding?.isVisible = true
-                    (binding as? FragmentHomeHeadTvBinding)?.apply {
-                        homePreviewInfoBtt.isVisible = false
-                    }
-                    //previewHeader.isVisible = false
-                }
             }
         }
 
@@ -771,18 +406,7 @@ class HomeParentItemAdapterPreview(
         }
 
         fun onViewAttachedToWindow() {
-            previewViewpager.registerOnPageChangeCallback(previewCallback)
-
-            previewViewpager.apply {
-                observe(viewModel.preview) {
-                    updatePreview(it)
-                }
-                /*if (binding is FragmentHomeHeadTvBinding) {
-                    observe(viewModel.apiName) { name ->
-                        binding.homePreviewChangeApi.text = name
-                        binding.homePreviewReloadProvider.isGone = (name == noneApi.name)
-                    }
-                }*/
+            itemView.apply {
                 observe(viewModel.resumeWatching) {
                     updateResume(it)
                 }

@@ -16,6 +16,7 @@ import com.lagradost.cloudstream3.ui.settings.SettingsFragment.Companion.setUpTo
 import com.lagradost.cloudstream3.utils.AppContextUtils.getApiDubstatusSettings
 import com.lagradost.cloudstream3.utils.AppContextUtils.getApiProviderLangSettings
 import com.lagradost.cloudstream3.utils.DataStoreHelper
+import com.lagradost.cloudstream3.utils.SingleSelectionHelper.showBottomDialog
 import com.lagradost.cloudstream3.utils.SingleSelectionHelper.showMultiDialog
 import com.lagradost.cloudstream3.utils.SubtitleHelper.getNameNextToFlagEmoji
 import com.lagradost.cloudstream3.utils.UIHelper.hideKeyboard
@@ -32,6 +33,38 @@ class SettingsProviders : BasePreferenceFragmentCompat() {
         hideKeyboard()
         setPreferencesFromResource(R.xml.settings_providers, rootKey)
         val settingsManager = PreferenceManager.getDefaultSharedPreferences(requireContext())
+
+        val cacheNames = resources.getStringArray(R.array.cache_time_names)
+        val cacheValues = resources.getIntArray(R.array.cache_time_values)
+
+        fun updateCacheSummary() {
+            val currentVal = DataStoreHelper.cacheTimeMinutes
+            val index = cacheValues.indexOf(currentVal)
+            getPref(R.string.cache_time_key)?.summary = if (index != -1) {
+                cacheNames.getOrNull(index)
+            } else {
+                "${currentVal}m"
+            }
+        }
+        updateCacheSummary()
+
+        getPref(R.string.cache_time_key)?.setOnPreferenceClickListener {
+            val currentVal = DataStoreHelper.cacheTimeMinutes
+            val currentIndex = cacheValues.indexOf(currentVal).let { if (it == -1) 4 else it }
+
+            activity?.showBottomDialog(
+                cacheNames.toList(),
+                currentIndex,
+                getString(R.string.cache_time_settings),
+                true,
+                {}
+            ) { selectedIndex ->
+                val selectedMinutes = cacheValues.getOrNull(selectedIndex) ?: 180
+                DataStoreHelper.cacheTimeMinutes = selectedMinutes
+                updateCacheSummary()
+            }
+            return@setOnPreferenceClickListener true
+        }
 
         getPref(R.string.display_sub_key)?.setOnPreferenceClickListener {
             activity?.getApiDubstatusSettings()?.let { current ->
