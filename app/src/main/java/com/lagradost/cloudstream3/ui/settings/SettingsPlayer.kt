@@ -282,6 +282,27 @@ class SettingsPlayer : BasePreferenceFragmentCompat() {
             }
             return@setOnPreferenceClickListener true
         }
+
+        getPref(R.string.image_buffer_disk_key)?.setOnPreferenceClickListener {
+            val prefNames = resources.getStringArray(R.array.video_buffer_size_names)
+            val prefValues = resources.getIntArray(R.array.video_buffer_size_values)
+
+            val currentPrefSize =
+                settingsManager.getInt(getString(R.string.image_buffer_disk_key), 0)
+
+            activity?.showDialog(
+                prefNames.toList(),
+                prefValues.indexOf(currentPrefSize),
+                getString(R.string.image_buffer_disk_settings),
+                true,
+                {}
+            ) {
+                settingsManager.edit {
+                    putInt(getString(R.string.image_buffer_disk_key), prefValues[it])
+                }
+            }
+            return@setOnPreferenceClickListener true
+        }
         getPref(R.string.video_buffer_size_key)?.setOnPreferenceClickListener {
             val prefNames = resources.getStringArray(R.array.video_buffer_size_names)
             val prefValues = resources.getIntArray(R.array.video_buffer_size_values)

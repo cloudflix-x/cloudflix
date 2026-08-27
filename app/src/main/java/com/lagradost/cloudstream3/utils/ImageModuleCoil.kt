@@ -8,6 +8,7 @@ import android.os.Build.VERSION.SDK_INT
 import android.util.Log
 import android.widget.ImageView
 import androidx.annotation.DrawableRes
+import androidx.preference.PreferenceManager
 import coil3.EventListener
 import coil3.ImageLoader
 import coil3.PlatformContext
@@ -28,6 +29,7 @@ import coil3.request.bitmapConfig
 import coil3.request.crossfade
 import coil3.util.DebugLogger
 import com.lagradost.cloudstream3.BuildConfig
+import com.lagradost.cloudstream3.R
 import com.lagradost.cloudstream3.USER_AGENT
 import com.lagradost.cloudstream3.network.buildDefaultClient
 import okio.Path.Companion.toOkioPath
@@ -38,6 +40,10 @@ object ImageLoader {
     private const val TAG = "CoilImgLoader"
     internal fun buildImageLoader(context: PlatformContext): ImageLoader {
         val isBrokenHardware = hasPotentialBrokenHardware()
+        val settingsManager = PreferenceManager.getDefaultSharedPreferences(context)
+        val imageDiskCacheMb =
+            settingsManager.getInt(context.getString(R.string.image_buffer_disk_key), 0)
+
         return ImageLoader.Builder(context)
             .crossfade(200)
             .allowHardware(SDK_INT >= 28 && !isBrokenHardware)
@@ -49,11 +55,17 @@ object ImageLoader {
                     .build()
             }
             .diskCache {
-                DiskCache.Builder()
+                val builder = DiskCache.Builder()
                     .directory(context.cacheDir.resolve("cs3_image_cache").toOkioPath())
-                    .maxSizeBytes(512L * 1024 * 1024) // 512 MB
-                    .maxSizePercent(0.04) // max 4% of storage for disk caching
-                    .build()
+
+                if (imageDiskCacheMb > 0) {
+                    builder.maxSizeBytes(imageDiskCacheMb * 1024L * 1024L)
+                } else {
+                    builder
+                        .maxSizeBytes(512L * 1024 * 1024) // 512 MB
+                        .maxSizePercent(0.04) // max 4% of storage for disk caching
+                }
+                builder.build()
             }
             /** Pass interceptors with care, unnecessary passing tokens to servers
             or image hosting services causes unauthorized exceptions **/
