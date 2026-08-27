@@ -198,6 +198,7 @@ class HomeViewModel : ViewModel() {
 
     private var onGoingLoad: Job? = null
     private var isCurrentlyLoadingName: String? = null
+    private var currentLoadedApiName: String? = null
     private fun loadAndCancel(api: MainAPI, forceReload: Boolean = false) {
         //println("loaded ${api.name}")
         onGoingLoad?.cancel()
@@ -309,17 +310,22 @@ class HomeViewModel : ViewModel() {
             return@ioSafe
         }
 
-        if (forceReload || isCurrentlyLoadingName != api.name) {
+        if (forceReload || currentLoadedApiName != api.name) {
             expandable.clear()
         }
+        currentLoadedApiName = api.name
 
-        val cachedData = if (forceReload) null else HomeCache.getHomeCache(api.name)
         var hadCachedData = false
-        if (!cachedData.isNullOrEmpty()) {
+        if (expandable.isNotEmpty()) {
             hadCachedData = true
-            processHomePageData(cachedData)
-        } else if (expandable.isEmpty()) {
-            _page.postValue(Resource.Loading())
+        } else {
+            val cachedData = if (forceReload) null else HomeCache.getHomeCache(api.name)
+            if (!cachedData.isNullOrEmpty()) {
+                hadCachedData = true
+                processHomePageData(cachedData)
+            } else {
+                _page.postValue(Resource.Loading())
+            }
         }
 
         when (val data = repo?.getMainPage(1, null)) {
@@ -385,8 +391,26 @@ class HomeViewModel : ViewModel() {
         MainActivity.reloadHomeEvent += ::reloadHome
         MainActivity.reloadAccountEvent += ::reloadAccount
 
-        DataStoreHelper.currentHomePage?.let { homeApi ->
-            loadAndCancel(homeApi, forceReload = false)
+        val homeApi = DataStoreHelper.currentHomePage
+        if (homeApi != null && homeApi != noneApi.name && homeApi != randomApi.name) {
+            _apiName.value = homeApi
+            currentLoadedApiName = homeApi
+            val cachedData = HomeCache.getHomeCache(homeApi)
+            if (!cachedData.isNullOrEmpty()) {
+                cachedData.forEach { home ->
+                    home?.items?.forEach { list ->
+                        val filteredList = context?.filterHomePageListByFilmQuality(list) ?: list
+                        expandable[list.name] = ExpandableHomepageList(
+                            filteredList.copy(list = CopyOnWriteArrayList(filteredList.list)),
+                            1,
+                            home.hasNext
+                        )
+                    }
+                }
+                if (expandable.isNotEmpty()) {
+                    _page.value = Resource.Success(HashMap(expandable))
+                }
+            }
         }
     }
 
@@ -465,11 +489,19 @@ class HomeViewModel : ViewModel() {
                 } else {
                     if (preferredApiName != null) {
                         _apiName.postValue(preferredApiName)
-                        val cachedData = if (forceReload) null else HomeCache.getHomeCache(preferredApiName)
-                        if (!cachedData.isNullOrEmpty()) {
-                            processHomePageData(cachedData)
-                        } else if (expandable.isEmpty()) {
-                            _page.postValue(Resource.Loading())
+                        if (forceReload || currentLoadedApiName != preferredApiName) {
+                            expandable.clear()
+                        }
+                        currentLoadedApiName = preferredApiName
+                        if (expandable.isNotEmpty()) {
+                            // Already has cached data in expandable
+                        } else {
+                            val cachedData = if (forceReload) null else HomeCache.getHomeCache(preferredApiName)
+                            if (!cachedData.isNullOrEmpty()) {
+                                processHomePageData(cachedData)
+                            } else {
+                                _page.postValue(Resource.Loading())
+                            }
                         }
                     } else if (expandable.isEmpty()) {
                         _page.postValue(Resource.Loading())
