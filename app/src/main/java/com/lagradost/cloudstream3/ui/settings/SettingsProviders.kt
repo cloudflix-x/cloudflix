@@ -1,6 +1,7 @@
 package com.lagradost.cloudstream3.ui.settings
 
 import android.os.Bundle
+import android.text.format.Formatter.formatShortFileSize
 import android.view.View
 import android.widget.Toast
 import androidx.core.content.edit
@@ -61,7 +62,7 @@ class SettingsProviders : BasePreferenceFragmentCompat() {
                 cacheNames.toList(),
                 currentIndex,
                 getString(R.string.cache_time_settings),
-                true,
+                false,
                 {}
             ) { selectedIndex ->
                 val selectedMinutes = cacheValues.getOrNull(selectedIndex) ?: 0
@@ -71,16 +72,30 @@ class SettingsProviders : BasePreferenceFragmentCompat() {
             return@setOnPreferenceClickListener true
         }
 
-        getPref(R.string.clear_provider_cache_key)?.setOnPreferenceClickListener {
-            try {
-                HomeCache.clearAll(context)
-                APIRepository.clearCache()
-                RepoLinkGenerator.cache.clear()
-                showToast(R.string.clear_provider_cache_cleared, Toast.LENGTH_SHORT)
-            } catch (e: Exception) {
-                logError(e)
+        getPref(R.string.clear_provider_cache_key)?.let { pref ->
+            fun updateSummary() {
+                try {
+                    val size = HomeCache.getCacheSize(pref.context)
+                    pref.summary = formatShortFileSize(pref.context, size)
+                } catch (e: Exception) {
+                    logError(e)
+                }
             }
-            return@setOnPreferenceClickListener true
+
+            updateSummary()
+
+            pref.setOnPreferenceClickListener {
+                try {
+                    HomeCache.clearAll(context)
+                    APIRepository.clearCache()
+                    RepoLinkGenerator.cache.clear()
+                    updateSummary()
+                    showToast(R.string.clear_provider_cache_cleared, Toast.LENGTH_SHORT)
+                } catch (e: Exception) {
+                    logError(e)
+                }
+                return@setOnPreferenceClickListener true
+            }
         }
 
         getPref(R.string.display_sub_key)?.setOnPreferenceClickListener {

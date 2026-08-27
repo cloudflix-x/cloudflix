@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.lagradost.cloudstream3.CloudStreamApp.Companion.getKey
 import com.lagradost.cloudstream3.CloudStreamApp.Companion.setKey
 import com.lagradost.cloudstream3.CloudStreamApp.Companion.removeKey
+import com.lagradost.cloudstream3.utils.DataStore.getSharedPrefs
 import com.lagradost.cloudstream3.utils.DataStore.removeKeys
 import com.lagradost.cloudstream3.HomePageResponse
 import com.lagradost.cloudstream3.HomePageList
@@ -282,5 +283,22 @@ object HomeCache {
         } catch (e: Exception) {
             logError(e)
         }
+    }
+
+    fun getCacheSize(context: Context?): Long {
+        if (context == null) return 0L
+        var totalBytes = 0L
+        try {
+            val prefs = context.getSharedPrefs()
+            val prefix = "${HOME_CACHE_FOLDER}/"
+            for ((key, value) in prefs.all) {
+                if (key.startsWith(prefix) && value is String) {
+                    totalBytes += value.toByteArray(Charsets.UTF_8).size.toLong()
+                }
+            }
+        } catch (e: Exception) {
+            logError(e)
+        }
+        return totalBytes
     }
 }
