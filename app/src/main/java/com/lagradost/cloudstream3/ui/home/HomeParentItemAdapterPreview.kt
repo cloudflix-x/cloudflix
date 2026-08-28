@@ -694,8 +694,8 @@ class HomeParentItemAdapterPreview(
                 }
             } else fixPaddingStatusbarView(homeNonePadding)
 
-            when (preview) {
-                is Resource.Success -> {
+            when {
+                preview is Resource.Success && preview.value.second.isNotEmpty() -> {
                     homePreviewShimmer?.stopShimmer()
                     homePreviewShimmer?.isGone = true
                     previewAdapter.submitList(preview.value.second)
@@ -732,11 +732,11 @@ class HomeParentItemAdapterPreview(
                     }
                 }
 
-                is Resource.Loading -> {
+                preview is Resource.Loading || (preview is Resource.Success && preview.value.second.isEmpty()) -> {
                     previewAdapter.submitList(listOf())
                     previewViewpager.setCurrentItem(0, false)
                     previewViewpager.isGone = true
-                    previewViewpagerText.isGone = true
+                    previewViewpagerText.isVisible = binding !is FragmentHomeHeadTvBinding
                     alternativeAccountPadding?.isVisible = false
                     homePreviewShimmer?.isVisible = true
                     homePreviewShimmer?.startShimmer()
